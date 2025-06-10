@@ -1,6 +1,7 @@
 from json import load
 import pandas as pd
 import numpy as np
+from torch.utils.data import Dataset
 # load parquet file
 def load_parquet(file_path: str) -> pd.DataFrame:
     """
@@ -101,7 +102,7 @@ def preprocessing_timestamp(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def preprocessing_and_save(df: pd.DataFrame, save_path) -> pd.DataFrame:
+def preprocessing_and_save(df: pd.DataFrame, save_path, mode='train') -> pd.DataFrame:
     """
     Apply all preprocessing steps to the DataFrame.
     
@@ -113,15 +114,41 @@ def preprocessing_and_save(df: pd.DataFrame, save_path) -> pd.DataFrame:
     """
     df = preprocessing_volume_and_buy_qty(df)
     df = preprocessing_normalize(df)
-    df = preprocessing_timestamp(df)
+    if mode == 'train':
+        df = preprocessing_timestamp(df)
     save_to_parquet(df, save_path)
     return df
 # for testing
-# df = load_parquet("../dataset/train.parquet")
+df = load_parquet("../dataset/train_processed.parquet")
 # df = preprocessing_volume_and_buy_qty(df)
 # df = preprocessing_normalize(df)
 # df = preprocessing_timestamp(df)
-# print(df.head())
+print(df.head())
 # # print(df['timestamp'].dtype)
-# print(df.describe())
+print(df.describe())
 # save_to_parquet(df, "../dataset/train_processed.parquet")
+
+class CryptoDataset(Dataset):
+    """
+    Custom Dataset for loading cryptocurrency data.
+    
+    Parameters:
+    df (pd.DataFrame): The DataFrame containing the data.
+    """
+    def __init__(self, df: pd.DataFrame):
+        self.df = df
+
+    def __len__(self):
+        return len(self.df)
+
+    def __getitem__(self, idx):
+        return self.df.iloc[idx]  # Return a single row as a Series
+    
+# test
+# df = load_parquet("/home/jasonx62301/for_python/data_mining/project/dataset/train_processed.parquet")
+# dataset = CryptoDataset(df)
+# print(df.columns)
+# print(f"Dataset length: {len(dataset)}")
+# print(f"First item: {dataset[0]}")  # Print the first item in the dataset
+# preprocessing_and_save(load_parquet("/home/jasonx62301/for_python/data_mining/project/dataset/test.parquet"),
+#                       "/home/jasonx62301/for_python/data_mining/project/dataset/test_processed.parquet", mode='test')
