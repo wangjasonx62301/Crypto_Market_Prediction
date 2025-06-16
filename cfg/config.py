@@ -6,5 +6,5 @@ class Config:
     
     train_data_path: str = "../dataset/train.parquet"
     test_data_path: str = "../dataset/test.parquet"
-    
+    test_df_path: str = "../dataset/test_predictions_tabnet.parquet"
     

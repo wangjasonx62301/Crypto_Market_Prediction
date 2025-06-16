@@ -11,8 +11,8 @@ def predict_on_test_data(model, test_data_path: str):
     test_df = pd.read_parquet(test_data_path)
     
     # Preprocess the test data (same preprocessing as training data)
-    X_test = test_df.drop(columns=['label', 'ID'])
-    
+    X_test = test_df.drop(columns=['ID', 'label'])
+    print(f"columns: {X_test.columns}, column count: {len(X_test.columns)}")
     # Make predictions
     predictions = model.predict(X_test)
     

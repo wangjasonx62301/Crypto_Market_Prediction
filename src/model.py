@@ -5,6 +5,7 @@ import pandas as pd
 from pytorch_tabnet import TabNetRegressor
 import numpy as np
 import test
+from utils import *
 
 # baseline model for cryptocurrency price prediction
 def baseline_model(df: pd.DataFrame, target_col: str, test_size: float = 0.2, random_state: int = 42):
@@ -24,15 +25,24 @@ def baseline_model(df: pd.DataFrame, target_col: str, test_size: float = 0.2, ra
     """
 
     # Split the data into features and target
-    X = df.drop(columns=[target_col, 'timestamp', 'hour', 'minute', 'dayofweek', 'day', 'month', 'hour_sin', 'hour_cos', 'minute_sin', 'minute_cos', 'dayofweek_sin', 'dayofweek_cos'])  # Exclude target and timestamp
+    X = df.drop(columns=[target_col, 'timestamp', 'hour', 'minute', 'dayofweek', 'day', 'month'])  # Exclude target and timestamp
     y = df[target_col]
     
+    # print(f"columns: {X.columns}, column count: {len(X.columns)}")
     # Split into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    
+    X_train = X_train.to_numpy() if hasattr(X_train, 'to_numpy') else np.array(X_train)
+    X_test = X_test.to_numpy() if hasattr(X_test, 'to_numpy') else np.array(X_test)
+    y_train = y_train.to_numpy().reshape(-1, 1) if hasattr(y_train, 'to_numpy') else np.array(y_train).reshape(-1, 1)
+    y_test = y_test.to_numpy().reshape(-1, 1) if hasattr(y_test, 'to_numpy') else np.array(y_test).reshape(-1, 1)
+
+    # Create and train the TabNet model
+    print("y_train.shape:", y_train.shape)
+    print("y_test.shape:", y_test.shape)
     # Create and train the LightGBM model
-    model = lgb.LGBMRegressor()
-    model.fit(X_train, y_train)
+    # model = lgb.LGBMRegressor()
+    model = TabNetRegressor(verbose=1)
+    model.fit(X_train, y_train, max_epochs=100)
     
     # Predict on the test set
     y_pred = model.predict(X_test)
@@ -45,15 +55,13 @@ def baseline_model(df: pd.DataFrame, target_col: str, test_size: float = 0.2, ra
     return model, X_test, y_test
 
 # Example usage:
-# df = pd.read_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/train_processed.parquet')
-# model, X_test, y_test = baseline_model(df, target_col='label')
+
 
 # load test data and predict
 
 
 # Example usage for prediction
-# test_data_path = '/home/jasonx62301/for_python/data_mining/project/dataset/test_processed.parquet'
-# predicted_df = predict_on_test_data(model, test_data_path)
+
 # predicted_df.to_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/test_predictions.parquet', index=False)
 
 def tabnet_model(df: pd.DataFrame, target_col: str, test_size: float = 0.2, random_state: int = 42):
@@ -78,8 +86,7 @@ def tabnet_model(df: pd.DataFrame, target_col: str, test_size: float = 0.2, rand
     # print(f"columns: {X.columns}, column count: {len(X.columns)}")
     # Split into training and testing sets
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
-    
-    # Create and train the TabNet model
+
     model = TabNetRegressor(verbose=1)
     model.fit(X_train.values, y_train.values, max_epochs=100)
     
@@ -99,12 +106,12 @@ target_cols = [
     "dayofweek_sin", "dayofweek_cos"
 ]
 
-df = pd.read_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/train_processed.parquet')
-# Example usage for TabNet model
-model, X_test, y_test = tabnet_model(df, target_col=target_cols)
+# df = pd.read_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/train_processed.parquet')
+# # Example usage for TabNet model
+# model, X_test, y_test = tabnet_model(df, target_col=target_cols)
 # Example usage for prediction with TabNet
 test_data_path = '/home/jasonx62301/for_python/data_mining/project/dataset/test_processed.parquet'
-def predict_on_test_data_tabnet(model, test_data_path: str):
+def predict_on_test_data_tabnet(model, test_data_path: str, config=None):
     """
     Load test data and make predictions using the trained TabNet model.
     
@@ -125,14 +132,20 @@ def predict_on_test_data_tabnet(model, test_data_path: str):
     for i, col in enumerate(target_cols):
         test_df[col] = predictions[:, i]
     # Reset index as ID
-    test_df.reset_index(drop=True, inplace=True)
-    test_df = test_df[['ID'] + target_cols]  # Keep only ID and predictions
+    # test_df.reset_index(drop=True, inplace=True)
+    # keep all columns
+    # X_test[target_cols] = predictions
+
     # Save to parquet
-    test_df.to_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/test_predictions_tabnet.parquet', index=False)
+    test_df.to_parquet(config.test_df_path, index=False)
     return test_df
 
-test_data_path = '/home/jasonx62301/for_python/data_mining/project/dataset/test_processed.parquet'
-# test test_parquet
-predicted_df_tabnet = predict_on_test_data_tabnet(model, test_data_path)
+# test_data_path = '/home/jasonx62301/for_python/data_mining/project/dataset/test_processed.parquet'
+# # test test_parquet
+# predicted_df_tabnet = predict_on_test_data_tabnet(model, test_data_path)
 # Save the predictions to parquet
-    
+df = pd.read_parquet('/home/jasonx62301/for_python/data_mining/project/dataset/train_processed.parquet')
+model, X_test, y_test = baseline_model(df, target_col='label')
+
+test_data_path = '/home/jasonx62301/for_python/data_mining/project/dataset/test_predictions_tabnet.parquet'
+predicted_df = predict_on_test_data(model, test_data_path)
